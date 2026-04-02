@@ -6,18 +6,15 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io
   FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/gaussian-pot-frontend
   BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/gaussian-pot-backend
 
 jobs:
-  build-and-deploy:
+  build-frontend:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,6 +38,25 @@ jobs:
           cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:cache
           cache-to: type=registry,ref=${{ env.FRONTEND_IMAGE }}:cache,mode=max
 
+  build-backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
@@ -50,6 +66,10 @@ jobs:
           cache-from: type=registry,ref=${{ env.BACKEND_IMAGE }}:cache
           cache-to: type=registry,ref=${{ env.BACKEND_IMAGE }}:cache,mode=max
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-backend]
+    steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
