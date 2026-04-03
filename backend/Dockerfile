@@ -7,9 +7,16 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
+# Run unit tests (game logic only — pure, no DB required).
+RUN go test ./internal/game/...
 
-FROM alpine:latest
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/server
+
+# ─── Runtime image ────────────────────────────────────────────────────────────
+FROM alpine:3.20
+
+# ca-certificates: needed for any outbound TLS; tzdata: correct time zones.
+RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 

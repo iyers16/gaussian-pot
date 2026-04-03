@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+
 	"github.com/iyers16/gaussian-pot/backend/internal/model"
 )
 
