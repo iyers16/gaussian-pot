@@ -31,7 +31,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,11 +46,14 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      # Use explicit 127.0.0.1 — Alpine resolves 'localhost' as ::1 (IPv6)
+      # but Next.js only listens on IPv4. node is always available in the image.
+      test: ["CMD", "node", "-e",
+        "require('http').get('http://127.0.0.1:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 30s
     networks:
       - internal
 
